@@ -1,0 +1,54 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Code Download
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step 2: Build Image
+      - name: Build Docker Image
+        run: docker build -t itsokayyy/my-ci-cd-app:v1 .
+
+      # Step 3: Run Container, Test & Cleanup (Port 5002 use hoga)
+      - name: Run Integration Tests
+        run: |
+          # 1. Network banao
+          docker network create test-net
+          
+          # 2. Redis Chalao
+          docker run -d --name redis --network test-net redis:alpine
+          
+          # 3. App Chalao (Port 5002 map kiya gaya hai)
+          docker run -d -p 5002:5000 --name web --network test-net -e REDIS_HOST=redis itsokayyy/my-ci-cd-app:v1
+          
+          # 4. Wait for app to start
+          sleep 5
+          
+          # 5. Test (Port 5002 par check karega)
+          echo "Testing on port 5002..."
+          curl --fail http://localhost:5002
+          
+          # 6. Cleanup (Containers stop aur delete karo)
+          echo "Test Passed. Cleaning up containers..."
+          docker stop web redis
+          docker rm web redis
+          docker network rm test-net
+
+      # Step 4: Docker Hub Login
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Step 5: Push Image
+      - name: Push Image to Docker Hub
+        run: docker push itsokayyy/my-ci-cd-app:v1
