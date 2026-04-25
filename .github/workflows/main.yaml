@@ -1,0 +1,44 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Code Download
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # Step 2: Unit Testing (Basic Check)
+      - name: Run Unit Tests
+        run: |
+          echo "Checking Python syntax..."
+          python -m py_compile app.py
+
+      # Step 3: Docker Hub Login
+      # Iske liye aapko GitHub settings mein secrets banana hoga (neeche bataya hai)
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Step 4: Build Image
+      - name: Build Docker Image
+        run: docker build -t itsokayyy/my-ci-cd-app:v1 .  # <-- Yahan apna username dalo
+
+      # Step 5: Push Image to Docker Hub
+      - name: Push Image
+        run: docker push itsokayyy/my-ci-cd-app:v1       # <-- Yahan apna username dalo
+
+      # Step 6: Deploy (Local Simulation)
+      # Kyunki server nahi hai, hum image ready kar rahe hain.
+      # Aap is image ko apni local machine par pull karke chala sakte ho.
+      - name: Deployment Info
+        run: |
+          echo "Image pushed successfully!"
+          echo "To run locally, use: docker pull my-user/my-ci-cd-app:v1"
